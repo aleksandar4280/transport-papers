@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import FavoriteButton from './save-favorite'
-import PdfViewerAuto from '@/components/PdfReader'
+import PdfViewer from '@/components/PdfReader'
 
 
 export default async function PaperPage({ params }: { params: { id: string } }) {
@@ -25,8 +25,8 @@ return (
 <div className="flex gap-2">
 <FavoriteButton paperId={paper.id} />
 </div>
-<PdfViewerAuto paperId={paper.id} />
-<p className="text-xs text-gray-500">Pregled bez download dugmeta. Na mobilnim uređajima se koristi inline prikaz.</p>
+<PdfViewer paperId={paper.id} />
+<p className="text-xs text-gray-500">Pregled bez download dugmeta. Na mobilnim uređajima koristimo inline prikaz.</p>
 </div>
 )
 }
