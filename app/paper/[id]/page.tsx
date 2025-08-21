@@ -25,9 +25,8 @@ return (
 <div className="flex gap-2">
 <FavoriteButton paperId={paper.id} />
 </div>
-{/* Auto: iframe (desktop) / react-pdf (mobile) */}
 <PdfViewerAuto paperId={paper.id} />
-<p className="text-xs text-gray-500">Pregled bez download dugmeta. Otvaranje u sistemskom prikazu može biti omogućeno na nekim mobilnim uređajima.</p>
+<p className="text-xs text-gray-500">Pregled bez download dugmeta. Na mobilnim uređajima se koristi inline prikaz.</p>
 </div>
 )
 }

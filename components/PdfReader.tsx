@@ -1,4 +1,21 @@
 'use client'
+const [loadErr, setLoadErr] = useState<string | null>(null)
+useEffect(() => {
+if (!wantsReactPdf) return
+let cancelled = false
+fetch(`/api/papers/${paperId}/signed`)
+.then((r) => r.json())
+.then((j) => {
+if (!cancelled) {
+if (j?.ok && j?.url) setSignedUrl(j.url)
+else setLoadErr(j?.error || 'Greška pri dobijanju URL-a')
+}
+})
+.catch((e) => { if (!cancelled) setLoadErr(String(e?.message || e)) })
+return () => { cancelled = true }
+}, [paperId, wantsReactPdf])
+
+
 if (!wantsReactPdf) {
 return (
 <div className="border rounded-2xl overflow-hidden" onContextMenu={(e)=>e.preventDefault()}>
