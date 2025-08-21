@@ -1,9 +1,8 @@
 'use client'
 import { Document, Page, pdfjs } from 'react-pdf'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 
-// Why: set worker to avoid bundling issues and keep viewer lightweight
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
 
 
@@ -18,4 +17,23 @@ return (
 </Document>
 </div>
 )
+}
+
+
+export function PdfReaderSigned({ paperId }: { paperId: string }) {
+const [url, setUrl] = useState<string | null>(null)
+const [err, setErr] = useState<string | null>(null)
+useEffect(() => {
+let cancelled = false
+fetch(`/api/papers/${paperId}/signed`).then(async (r)=>{
+const j = await r.json().catch(()=>({ ok:false, error:'invalid json' }))
+if (!cancelled) {
+if (j.ok && j.url) setUrl(j.url); else setErr(j.error || 'Nepoznata greška')
+}
+}).catch(e => { if (!cancelled) setErr(String(e?.message||e)) })
+return () => { cancelled = true }
+}, [paperId])
+if (err) return <div className="text-sm text-red-600">Greška učitavanja PDF-a: {err}</div>
+if (!url) return <p>Učitavanje…</p>
+return <PdfReader fileUrl={url} />
 }

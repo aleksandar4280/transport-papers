@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import PdfReader from '@/components/PdfReader'
+import { PdfReaderSigned } from '@/components/PdfReader'
 import FavoriteButton from './save-favorite'
 
 
@@ -17,8 +17,8 @@ return (
 <div className="flex gap-2">
 <FavoriteButton paperId={paper.id} />
 </div>
-<PdfReader fileUrl={`/api/papers/${paper.id}/stream`} />
-<p className="text-xs text-gray-500">Napomena: onemogućili smo download UI, ali web preglednik tehnički uvek može sačuvati kopiju.</p>
+<PdfReaderSigned paperId={paper.id} />
+<p className="text-xs text-gray-500">Napomena: čitanje preko privremenog linka; preuzimanje nije izloženo u UI.</p>
 </div>
 )
 }
