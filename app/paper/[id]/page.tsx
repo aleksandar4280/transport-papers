@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import FavoriteButton from './save-favorite'
-import PdfIFrame from '@/components/PdfReader'
+import PdfViewer from '@/components/PdfViewer'
 
 export default async function PaperPage({ params }: { params: { id: string } }) {
   const { data: paper } = await supabaseAdmin
@@ -15,23 +15,19 @@ export default async function PaperPage({ params }: { params: { id: string } }) 
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">{paper.title}</h1>
-        <p className="text-sm text-gray-600">
-          {paper.categories?.name} {paper.year ? `• ${paper.year}` : ''}
-        </p>
+        <p className="text-sm text-gray-600">{paper.categories?.name} {paper.year ? `• ${paper.year}` : ''}</p>
         {paper.authors_text && <p className="text-sm">{paper.authors_text}</p>}
-        {paper.keywords_text && (
-          <p className="text-xs text-gray-500">{paper.keywords_text}</p>
-        )}
+        {paper.keywords_text && <p className="text-xs text-gray-500">{paper.keywords_text}</p>}
       </div>
 
       <div className="flex gap-2">
         <FavoriteButton paperId={paper.id} />
       </div>
 
-      <PdfIFrame paperId={paper.id} />
+      <PdfViewer paperId={paper.id} />
 
       <p className="text-xs text-gray-500">
-        Napomena: pregled u browseru bez download dugmeta; tehnički potpuno sprečavanje preuzimanja u webu nije moguće.
+        Pregled je bez download dugmeta; potpuno sprečavanje preuzimanja na webu nije moguće.
       </p>
     </div>
   )
