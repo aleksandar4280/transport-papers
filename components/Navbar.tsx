@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createServerSupabase } from '@/lib/supabaseServer'
+import MobileMenu from '@/components/MobileMenu'
 
 export default async function Navbar() {
   const supabase = createServerSupabase()
@@ -24,7 +25,7 @@ export default async function Navbar() {
           <Link href="/" className="font-semibold">Transport Papers</Link>
         </div>
 
-        {/* Desktop nav (bez Pretrage) */}
+        {/* Desktop navigacija (bez "Pretraga") */}
         <nav className="hidden md:flex items-center gap-3 text-sm">
           <Link href="/" className="hover:underline">Početna</Link>
           {user ? (
@@ -41,33 +42,8 @@ export default async function Navbar() {
           )}
         </nav>
 
-        {/* Mobile nav: hamburger bez trougla/teksta (checkbox + label, bez JS) */}
-        <div className="relative md:hidden">
-          <input id="mnav" type="checkbox" className="peer hidden" aria-hidden="true" />
-          <label htmlFor="mnav" className="inline-flex items-center justify-center rounded-lg border px-3 py-2" aria-label="Otvori meni">
-            {/* Hamburger ikonica (3 linije) */}
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </label>
-          <div className="absolute right-0 mt-2 hidden peer-checked:flex flex-col gap-2 bg-white border rounded-xl p-3 shadow-lg min-w-[180px]">
-            <Link href="/" className="hover:underline">Početna</Link>
-            {user ? (
-              <>
-                <Link href="/profile" className="hover:underline">Profile</Link>
-                {isAdmin && <Link href="/admin" className="hover:underline">Admin</Link>}
-                <Link href="/auth/sign-out" className="rounded-lg border px-3 py-1 text-center">Odjava</Link>
-              </>
-            ) : (
-              <>
-                <Link href="/auth/sign-in" className="rounded-lg border px-3 py-1 text-center">Prijava</Link>
-                <Link href="/auth/sign-up" className="hover:underline">Registracija</Link>
-              </>
-            )}
-          </div>
-        </div>
+        {/* Mobile meni (auto-close) */}
+        <MobileMenu signedIn={!!user} isAdmin={isAdmin} />
       </div>
     </header>
   )
