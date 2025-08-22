@@ -16,9 +16,19 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   const { data: paper } = await supabaseAdmin.from('papers').select('*').eq('id', params.id).single()
   if (!paper) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  // Clean relations (favorites + authors) pre delete
+  // relations cleanup
   await supabaseAdmin.from('favorites').delete().eq('paper_id', params.id)
   await supabaseAdmin.from('paper_authors').delete().eq('paper_id', params.id)
+
+  // audit: delete (snapshot pre brisanja)
+  await supabaseAdmin.from('paper_audit').insert({
+    paper_id: params.id,
+    action: 'delete',
+    actor_id: user.id,
+    actor_email: user.email,
+    old_data: paper,
+    new_data: null,
+  })
 
   const { error: delErr } = await supabaseAdmin.from('papers').delete().eq('id', params.id)
   if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 })
