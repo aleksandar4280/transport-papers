@@ -27,7 +27,7 @@ export default async function PaperPage({ params }: { params: { id: string } }) 
       <PdfViewer paperId={paper.id} />
 
       <p className="text-xs text-gray-500">
-        Pregled je bez download dugmeta; potpuno sprečavanje preuzimanja na webu nije moguće.
+        Napomena: na webu nije moguće 100% sprečiti preuzimanje, ali nudimo samo inline prikaz bez direktnih linkova.
       </p>
     </div>
   )
