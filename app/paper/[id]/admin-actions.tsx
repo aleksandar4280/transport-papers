@@ -1,7 +1,8 @@
 'use client'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-/** Minimal admin akcije za stranicu rada */
+/** Admin akcije na stranici rada (edit/delete) */
 export default function AdminActions({ paperId }: { paperId: string }) {
   const router = useRouter()
 
@@ -23,7 +24,8 @@ export default function AdminActions({ paperId }: { paperId: string }) {
 
   return (
     <div className="flex gap-2">
-      <a href={`/admin/papers/${paperId}/edit`} className="rounded-lg border px-3 py-1 text-sm">Izmeni</a>
+      {/* Link koristi Next.js klijentsku navigaciju */}
+      <Link href={`/admin/papers/${paperId}/edit`} className="rounded-lg border px-3 py-1 text-sm">Izmeni</Link>
       <button onClick={onDelete} className="rounded-lg border px-3 py-1 text-sm text-red-600">Obriši</button>
     </div>
   )
