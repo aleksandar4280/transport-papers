@@ -18,7 +18,7 @@ function contentDispositionInline(name: string): string {
   return `inline; filename="${fallback}"; filename*=UTF-8''${encoded}`
 }
 
-async function proxyPdf(signedUrl: string, req: Request, filename: string) {
+async function proxyFromSignedUrl(signedUrl: string, req: Request, filename: string) {
   const range = req.headers.get('range') || undefined
   const upstream = await fetch(signedUrl, {
     method: 'GET',
@@ -58,15 +58,37 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ ok: false, stage: 'db:paper', error: error?.message || 'not found' }, { status: 404 })
     }
 
+    // 1) Pokušaj preko signed URL sa dužim rokom (1h)
     const { data: signed, error: signErr } = await supabaseAdmin
       .storage
       .from(env.bucket)
-      .createSignedUrl(paper.storage_path, 300)
-    if (signErr || !signed?.signedUrl) {
-      return NextResponse.json({ ok: false, stage: 'storage:signed', error: signErr?.message || 'no signed url' }, { status: 500 })
+      .createSignedUrl(paper.storage_path, 3600)
+    if (!signErr && signed?.signedUrl) {
+      const res = await proxyFromSignedUrl(signed.signedUrl, req, paper.title)
+      // Ako storage vratio 400 InvalidJWT (časovnik/istek), probaj direktan download kao fallback
+      if (!(res as any)?.body && (res as any)?.status === 502) {
+        const json = await (res as Response).clone().json().catch(() => ({} as any))
+        if (json?.error?.includes('InvalidJWT') || json?.status === 400) {
+          // fallback ispod
+        } else {
+          return res
+        }
+      } else {
+        return res
+      }
     }
 
-    return proxyPdf(signed.signedUrl, req, paper.title)
+    // 2) Fallback: direktan download preko admin ključa (bez potpisanog URL-a)
+    const dl = await supabaseAdmin.storage.from(env.bucket).download(paper.storage_path)
+    if (dl.error || !dl.data) {
+      return NextResponse.json({ ok: false, stage: 'storage:download', error: dl.error?.message || 'download failed' }, { status: 500 })
+    }
+    const ab = await dl.data.arrayBuffer()
+    const headers = new Headers()
+    headers.set('Content-Type', 'application/pdf')
+    headers.set('Cache-Control', 'no-store, max-age=0')
+    try { headers.set('Content-Disposition', contentDispositionInline(paper.title)) } catch {}
+    return new NextResponse(ab, { status: 200, headers })
   } catch (e: any) {
     return NextResponse.json({ ok: false, stage: 'fatal', error: e?.message || 'unknown' }, { status: 500 })
   }
@@ -84,10 +106,9 @@ export async function HEAD(_req: Request, { params }: { params: { id: string } }
     const { data: signed } = await supabaseAdmin
       .storage
       .from(env.bucket)
-      .createSignedUrl(paper.storage_path, 300)
+      .createSignedUrl(paper.storage_path, 3600)
     if (!signed?.signedUrl) return new NextResponse(null, { status: 500 })
 
-    // HEAD upstream to get length & range support
     const upstream = await fetch(signed.signedUrl, { method: 'HEAD', cache: 'no-store' })
     const headers = new Headers()
     headers.set('Content-Type', 'application/pdf')

@@ -16,23 +16,14 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ ok: false, stage: 'db:paper', error: error?.message || 'not found' }, { status: 404 })
     }
 
-    const { data: signed, error: signErr } = await supabaseAdmin
-      .storage
-      .from(env.bucket)
-      .createSignedUrl(paper.storage_path, 60)
-    if (signErr || !signed?.signedUrl) {
-      return NextResponse.json({ ok: false, stage: 'storage:signed', error: signErr?.message || 'no signed url' }, { status: 500 })
+    // Direktan download preko admin API-ja (ne koristi potpisan URL) → nema InvalidJWT
+    const dl = await supabaseAdmin.storage.from(env.bucket).download(paper.storage_path)
+    if (dl.error || !dl.data) {
+      return NextResponse.json({ ok: false, stage: 'storage:download', error: dl.error?.message || 'download failed' }, { status: 500 })
     }
+    const ab = await dl.data.arrayBuffer()
 
-    const upstream = await fetch(signed.signedUrl, { cache: 'no-store' })
-    if (!upstream.ok) {
-      const t = await upstream.text().catch(()=>'')
-      return NextResponse.json({ ok: false, stage: 'storage:fetch', status: upstream.status, error: t.slice(0,200) }, { status: 502 })
-    }
-    const buf = await upstream.arrayBuffer()
-
-    // Important: we DO NOT set Content-Disposition; client fetches this via XHR, not navigation
-    return new NextResponse(buf, {
+    return new NextResponse(ab, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
@@ -43,4 +34,3 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ ok: false, stage: 'fatal', error: e?.message || 'unknown' }, { status: 500 })
   }
 }
-
