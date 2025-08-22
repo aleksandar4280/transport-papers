@@ -2,17 +2,26 @@
 import { useEffect, useRef, useState } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
+// Use local ESM worker (no CDN/CORS issues on mobile)
+if (typeof window !== 'undefined') {
+  try {
+    // @ts-ignore -- workerPort is supported by pdf.js runtime even if not in types
+    pdfjs.GlobalWorkerOptions.workerPort = new Worker('/pdf.worker.min.mjs', { type: 'module' })
+  } catch {
+    // Fallback: direct src (still ESM). Keep file in /public
+    pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+  }
+}
 
-function isMobileUA(): boolean {
+function isMobile(): boolean {
   if (typeof navigator === 'undefined') return false
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent)
 }
 
 export default function PdfViewer({ paperId }: { paperId: string }) {
-  const mobile = isMobileUA()
+  const mobile = isMobile()
 
-  // Desktop: stabilni iframe ka /stream (inline prikaz)
+  // Desktop → iframe to our proxy stream (inline, no download UI)
   if (!mobile) {
     const src = `/api/papers/${paperId}/stream#toolbar=0&view=FitH`
     return (
@@ -22,7 +31,7 @@ export default function PdfViewer({ paperId }: { paperId: string }) {
     )
   }
 
-  // Mobile: učitamo PDF bajtove preko naše /bytes rute, pa renderujemo sa react-pdf (bez navigacije)
+  // Mobile → fetch bytes and render in-memory (no navigation → no download prompt)
   return <PdfMobile paperId={paperId} />
 }
 
@@ -42,13 +51,13 @@ function PdfMobile({ paperId }: { paperId: string }) {
 
   useEffect(() => {
     let cancelled = false
-    fetch(`/api/papers/${paperId}/bytes`)
+    fetch(`/api/papers/${paperId}/bytes`, { cache: 'no-store' })
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         const buf = await r.arrayBuffer()
         if (!cancelled) setData(new Uint8Array(buf))
       })
-      .catch((e) => !cancelled && setErr(String(e?.message || e)))
+      .catch((e) => { if (!cancelled) setErr(String(e?.message || e)) })
     return () => { cancelled = true }
   }, [paperId])
 
@@ -57,9 +66,20 @@ function PdfMobile({ paperId }: { paperId: string }) {
 
   return (
     <div ref={wrapRef} className="border rounded-2xl p-2 select-text" onContextMenu={(e)=>e.preventDefault()}>
-      <Document file={{ data }} onLoadSuccess={(info)=>setNumPages(info.numPages)} loading={<p>Učitavanje…</p>}>
+      <Document
+        file={{ data }}
+        loading={<p>Učitavanje…</p>}
+        onLoadSuccess={(info) => setNumPages(info.numPages)}
+        onLoadError={(e) => setErr(String((e as any)?.message || e))}
+      >
         {Array.from({ length: numPages || 0 }, (_, i) => (
-          <Page key={i+1} pageNumber={i+1} width={width} renderAnnotationLayer={false} renderTextLayer={true} />
+          <Page
+            key={i + 1}
+            pageNumber={i + 1}
+            width={width}
+            renderAnnotationLayer={false}
+            renderTextLayer={true}
+          />
         ))}
       </Document>
     </div>
